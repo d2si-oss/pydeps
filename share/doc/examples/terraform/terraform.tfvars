@@ -9,3 +9,8 @@ public_subnet_start = "0"
 private_subnet_start = "4"
 
 region = "eu-west-1"
+
+# database
+db_name = "mytest"
+db_username = "myuser"
+db_password = "mypassword"

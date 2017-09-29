@@ -2,6 +2,9 @@
 *.dot
 *.png
 
+# ignore terraform state files
+terraform.tfstate*
+
 # pycharm configuration
 .idea
 

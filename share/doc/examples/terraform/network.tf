@@ -80,7 +80,6 @@ resource "aws_subnet" "private" {
   count                   = "${length(split(",",lookup(var.az,var.region)))}"
   cidr_block              = "${cidrsubnet(var.vpc_cidr, var.netbits, count.index + var.private_subnet_start)}"
   availability_zone       = "${element(split(",",lookup(var.az,var.region)), count.index)}"
-  map_public_ip_on_launch = "${var.map_public_ip_on_launch}"
 
   tags {
     Name        = "${var.environment}-${var.project}-private-${count.index}"
