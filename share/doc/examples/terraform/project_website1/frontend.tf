@@ -1,4 +1,33 @@
 ### Web Load Balancer
+resource "aws_security_group" "front-elb" {
+  name   = "${var.environment}-${var.project}-${var.application}-front-elb"
+  vpc_id = "${aws_vpc.project.id}"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    Name        = "${var.environment}-${var.project}-${var.application}-front-elb"
+    Owner       = "${var.owner}"
+    Project     = "${var.project}"
+    EOTP        = "${var.eotp}"
+    Environment = "${var.environment}"
+    Application = "${var.application}"
+    Component = "front"
+  }
+}
+
 resource "aws_elb" "front-elb" {
   name = "${var.environment}-${var.project}-${var.application}-front"
 
@@ -31,15 +60,28 @@ resource "aws_elb" "front-elb" {
   }
 }
 
-resource "aws_security_group" "front-elb" {
-  name   = "${var.environment}-${var.project}-${var.application}-front-elb"
+# Web instances
+data "aws_ami" "front-instances" {
+  most_recent = true
+  name_regex = "${var.front_ami_name_regex}"
+}
+
+resource "aws_security_group" "front-instances" {
+  name   = "${var.environment}-${var.project}-${var.application}-front-instances"
   vpc_id = "${aws_vpc.project.id}"
 
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = ["${aws_security_group.front-elb.id}"]
+  }
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = ["176.67.91.153/32"]
   }
 
   egress {
@@ -48,9 +90,8 @@ resource "aws_security_group" "front-elb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   tags {
-    Name        = "${var.environment}-${var.project}-${var.application}-front-elb"
+    Name        = "${var.environment}-${var.project}-${var.application}-front-instances"
     Owner       = "${var.owner}"
     Project     = "${var.project}"
     EOTP        = "${var.eotp}"
@@ -60,27 +101,25 @@ resource "aws_security_group" "front-elb" {
   }
 }
 
-# Web instances
-data "aws_ami" "front-instances" {
-  most_recent = true
-  name_regex = "${var.front_ami_name_regex}"
-}
-
 resource "aws_launch_configuration" "front-instances" {
   name_prefix     = "${var.environment}-${var.project}-${var.application}-front-"
   image_id        = "${data.aws_ami.front-instances.id}"
   instance_type   = "${var.front_instance}"
   security_groups = ["${aws_security_group.front-instances.id}"]
-#  user_data       = "${file("../01_configuration_management/web_configure_userdata.sh")}"
+  user_data       = "${data.template_cloudinit_config.userdata.rendered}"
+  key_name = "fsa"
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_autoscaling_group" "front-instances" {
   name_prefix          = "${var.environment}-${var.project}-${var.application}-front-"
-  vpc_zone_identifier  = ["${aws_subnet.private.*.id}"]
+  vpc_zone_identifier  = ["${aws_subnet.public.*.id}"]
 
   launch_configuration      = "${aws_launch_configuration.front-instances.name}"
   load_balancers = ["${aws_elb.front-elb.name}"]
-
+  force_delete = true
   max_size         = "2"
   min_size         = "1"
   desired_capacity = "2"
@@ -128,34 +167,6 @@ resource "aws_autoscaling_group" "front-instances" {
       propagate_at_launch = true
     }
   ]
-}
-
-resource "aws_security_group" "front-instances" {
-  name   = "${var.environment}-${var.project}-${var.application}-front-instances"
-  vpc_id = "${aws_vpc.project.id}"
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    security_groups = ["${aws_security_group.front-elb.id}"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags {
-    Name        = "${var.environment}-${var.project}-${var.application}-front-instances"
-    Owner       = "${var.owner}"
-    Project     = "${var.project}"
-    EOTP        = "${var.eotp}"
-    Environment = "${var.environment}"
-    Application = "${var.application}"
-    Component = "front"
-  }
 }
 
 ### Outputs

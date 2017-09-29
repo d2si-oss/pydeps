@@ -4,12 +4,14 @@ graph_customization:
   color: darkgoldenrod
 
 frontend:
-  nginx:
-    vhost: www
+  services:
+    nginx:
+      vhost: www
   dependencies:
     - component: project.website1.database
       service: mariadb
 
 database:
-  mariadb:
-    name: test
+  services:
+    mariadb:
+      name: test
