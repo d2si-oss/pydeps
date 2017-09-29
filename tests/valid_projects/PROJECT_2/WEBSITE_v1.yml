@@ -16,5 +16,6 @@ BACKEND:
       service: mariadb
 
 DATABASE:
-  mariadb:
-    name: test1
+  services:
+    mariadb:
+      name: test1

@@ -1,0 +1,24 @@
+---
+graph_customization:
+  fillcolor: lemonchiffon
+  color: darkgoldenrod
+
+frontend:
+  nginx:
+    vhost: www
+  dependencies:
+    - component: project.website2.database
+      service: mariadb
+    - component: project.website1.database
+      service: mariadb
+
+backend:
+  nginx:
+    vhost: back
+  dependencies:
+    - component: project.website2.database
+      service: mariadb
+
+database:
+  mariadb:
+    name: test
