@@ -107,7 +107,6 @@ resource "aws_launch_configuration" "front-instances" {
   instance_type   = "${var.front_instance}"
   security_groups = ["${aws_security_group.front-instances.id}"]
   user_data       = "${data.template_cloudinit_config.userdata.rendered}"
-  key_name = "fsa"
   lifecycle {
     create_before_destroy = true
   }
@@ -115,7 +114,7 @@ resource "aws_launch_configuration" "front-instances" {
 
 resource "aws_autoscaling_group" "front-instances" {
   name_prefix          = "${var.environment}-${var.project}-${var.application}-front-"
-  vpc_zone_identifier  = ["${aws_subnet.public.*.id}"]
+  vpc_zone_identifier  = ["${aws_subnet.private.*.id}"]
 
   launch_configuration      = "${aws_launch_configuration.front-instances.name}"
   load_balancers = ["${aws_elb.front-elb.name}"]

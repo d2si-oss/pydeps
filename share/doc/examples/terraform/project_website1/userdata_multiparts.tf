@@ -1,5 +1,5 @@
 data "template_file" "variables" {
-  template = "${file("${path.cwd}/files/variables.txt")}"
+  template = "${file("${path.cwd}/files/variables.tpl")}"
 
   vars {
     project_website1_database_mariadb_user="${var.db_username}"
@@ -15,11 +15,17 @@ data "template_cloudinit_config" "userdata" {
   base64_encode = false
 
   part {
+    content_type = "text/cloud-config"
+    content = "${file("${path.cwd}/files/cloud_init.cfg")}"
+  }
+  part {
     content_type = "text/x-shellscript"
     content      = "${data.template_file.variables.rendered}"
+    filename     = "variables"
   }
   part {
     content_type = "text/x-shellscript"
     content      = "${file("${path.cwd}/files/userdata.sh")}"
+    filename     = "userdata.sh"
   }
 }
