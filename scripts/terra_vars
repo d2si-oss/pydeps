@@ -1,0 +1,91 @@
+#! /usr/bin/env python
+#
+#    Application dependencies management (pydeps)
+#
+#    Copyright (C) 2017 Cyrielle Camanes (sylicia) <cyrielle.camanes@gmail.com>
+#
+#    This file is part of pydeps
+#
+#    This program is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU General Public License
+#    as published by the Free Software Foundation; either version 2
+#    of the License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, see <http://www.gnu.org/licenses/>.
+
+"""terra_vars
+
+Usage:
+  terra_vars -h | --help
+  terra_vars -l -p <projects_path>
+  terra_vars -c <component_id> -p <projects_path> [-o <vars_path>] [-f <format>]
+
+
+Options:
+    -h, --help                                     Show this screen.
+    -l, --list                                     List available components
+    -c <component_id>, --component <component_id>  Component to focus on
+    -p <projects_path>, --path <projects_path>     Path to projects YAML files
+    -o <vars_path>, --output <vars_path>           Output in specified file
+                                                   [Default: stdout]
+    -f <format>, --format <format>                 Output format (flat or json)
+                                                   [Default: flat]
+
+Examples:
+    $ terra_vars -c PROJECT_2.WEBSITE_v1.FRONTEND -p tests/valid_projects
+
+"""
+
+import logging
+import pydeps
+from pydeps import terraform_template as terra_tpl
+from pprint import pprint
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logging.basicConfig(format='[%(levelname)s] - %(message)s')
+
+if __name__ == '__main__':
+    # Init variables from arguments
+    from docopt import docopt
+
+    arguments = docopt(__doc__)
+    output_list = arguments['--list']
+    compo_id = arguments['--component']
+    projects_path = arguments['--path']
+    output_path = arguments['--output']
+    output_fmt = arguments['--format']
+
+    # Load projects configuration
+    try:
+        pydeps.load_projects(projects_path)
+        pydeps.load_services()
+    except pydeps.DependencyError as error:
+        logger.critical(error)
+        exit(2)
+    except IOError as error:
+        logger.critical(error)
+        exit(2)
+    except pydeps.ArgumentError as error:
+        logger.critical(error)
+        exit(1)
+
+    if output_list:
+        for compo in sorted(pydeps.COMPONENTS.keys()):
+            print(compo)
+        exit(0)
+
+    try:
+        terra_tpl.generate_userdata(compo_id, output_path, output_fmt)
+    except KeyError as error:
+        logger.critical(error)
+        exit(1)
+    except pydeps.DependencyError as error:
+        logger.critical(error)
+        exit(1)
